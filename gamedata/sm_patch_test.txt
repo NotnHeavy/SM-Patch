@@ -6,7 +6,7 @@
         {
             "CTFFlameManager::GetFlameDamageScale()::RemoveFlameDensity"
             {
-                "signature"    "CTFFlameManager::GetFlameDamageScale()"
+                "signature"     "CTFFlameManager::GetFlameDamageScale()"
                 "windows"
                 {
                     "offset"    "390"
@@ -26,7 +26,7 @@
             }
             "CTFProjectile_EnergyRing::Create()::SetSpeed"
             {
-                "signature"    "CTFProjectile_EnergyRing::Create()"
+                "signature"     "CTFProjectile_EnergyRing::Create()"
                 "windows"
                 {
                     "offset"    "107"
