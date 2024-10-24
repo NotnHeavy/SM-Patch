@@ -75,7 +75,6 @@ enum struct bytes_t
 enum struct wildcard_t
 {
     int index;
-    int rip_offset_value;
     int length;
     int instruction_length;
     int64_t value;  // This can either be just the cached variable itself (x86-32), 
@@ -97,10 +96,9 @@ enum
 enum
 {
     OFFSET_WILDCARD_T_INDEX                 = 0,    // int index;
-    OFFSET_WILDCARD_T_RIP_OFFSET_VALUE      = 1,    // int rip_offset_value;
-    OFFSET_WILDCARD_T_LENGTH                = 2,    // int length;
-    OFFSET_WILDCARD_T_INSTRUCTION_LENGTH    = 3,    // int instruction_length;
-    OFFSET_WILDCARD_T_VALUE                 = 4,    // int64_t value;
+    OFFSET_WILDCARD_T_LENGTH                = 1,    // int length;
+    OFFSET_WILDCARD_T_INSTRUCTION_LENGTH    = 2,    // int instruction_length;
+    OFFSET_WILDCARD_T_VALUE                 = 3,    // int64_t value;
 }
 
 // Allows the programmer to memory patch a sequence of bytes in memory.
@@ -252,16 +250,15 @@ methodmap MemoryPatch < ArrayList
 
             // Check if this is a block of wildcards starting with a RIP offset byte.
             wildcard_t index;
-            int count = 1;
+            int count = 0;
             index.index = i - negate;
             if (wildcard_bytes.buffer[i] == WILDCARD_RIPOFFSET_BYTE)
             {
-                while (i + 1 < wildcard_bytes.count && wildcard_bytes.buffer[i] == WILDCARD_RIPOFFSET_BYTE)
+                while (i < wildcard_bytes.count && wildcard_bytes.buffer[i] == WILDCARD_RIPOFFSET_BYTE)
                 {
                     ++count;
                     ++i;
                 }
-                index.rip_offset_value = index.index + count - 4 - 1;
                 index.instruction_length = count;
             }
 
@@ -269,7 +266,7 @@ methodmap MemoryPatch < ArrayList
             if (wildcard_bytes.buffer[i] == WILDCARD_BYTE)
             {
                 // Count the number of wildcard bytes.
-                while (i + 1 < wildcard_bytes.count && wildcard_bytes.buffer[i + 1] == WILDCARD_BYTE)
+                while (i < wildcard_bytes.count && wildcard_bytes.buffer[i] == WILDCARD_BYTE)
                 {
                     ++count;
                     ++i;
@@ -278,8 +275,9 @@ methodmap MemoryPatch < ArrayList
                 // Push the wildcard object.
                 index.length = count;
                 wildcard_offsets.PushArray(index, sizeof(index));
+                --i;
             }
-            else if (index.rip_offset_value)
+            else if (index.instruction_length)
             {
                 delete bytes_list;
                 delete wildcard_offsets;
@@ -420,7 +418,7 @@ methodmap MemoryPatch < ArrayList
 
             // Write the first bytes of the original instruction with the relative address that
             // is to be substituted.
-            for (; i < sizeof(trampoline_prologue) - 1 + wildcard.rip_offset_value; ++i)
+            for (; i < sizeof(trampoline_prologue) - 1 + (wildcard.instruction_length - 4); ++i)
             {
                 value.low = original_bytes.Get(i - (sizeof(trampoline_prologue) - 1));
                 StoreToAddress64(trampoline, NumberType_Int8, value, .offset = i);
