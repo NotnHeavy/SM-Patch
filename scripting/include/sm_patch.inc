@@ -9,7 +9,7 @@
 
 #define SM_PATCH_MAJOR                      1
 #define SM_PATCH_MINOR                      0
-#define SM_PATCH_REVISION                   0
+#define SM_PATCH_REVISION                   1
 
 #include <sourcemod>
 
@@ -77,6 +77,7 @@ enum struct wildcard_t
     int index;
     int rip_offset_value;
     int length;
+    int instruction_length;
     int64_t value;  // This can either be just the cached variable itself (x86-32), 
                     // or a trampoline and the cached variable afterwards (x86-64).
 }
@@ -95,10 +96,11 @@ enum
 // Internal offsets for the wildcard_t object.
 enum
 {
-    OFFSET_WILDCARD_T_INDEX             = 0,    // int index;
-    OFFSET_WILDCARD_T_RIP_OFFSET_VALUE  = 1,    // int rip_offset_value;
-    OFFSET_WILDCARD_T_LENGTH            = 2,    // int length;
-    OFFSET_WILDCARD_T_VALUE             = 3,    // int64_t value;
+    OFFSET_WILDCARD_T_INDEX                 = 0,    // int index;
+    OFFSET_WILDCARD_T_RIP_OFFSET_VALUE      = 1,    // int rip_offset_value;
+    OFFSET_WILDCARD_T_LENGTH                = 2,    // int length;
+    OFFSET_WILDCARD_T_INSTRUCTION_LENGTH    = 3,    // int instruction_length;
+    OFFSET_WILDCARD_T_VALUE                 = 4,    // int64_t value;
 }
 
 // Allows the programmer to memory patch a sequence of bytes in memory.
@@ -260,6 +262,7 @@ methodmap MemoryPatch < ArrayList
                     ++i;
                 }
                 index.rip_offset_value = index.index + count - 4 - 1;
+                index.instruction_length = count;
             }
 
             // Check to see if this is a block of wildcards.
@@ -425,7 +428,7 @@ methodmap MemoryPatch < ArrayList
 
             // Write a new relative address that points to the value located after this subroutine
             // in memory.
-            value.low = trampoline_size - wildcard.rip_offset_value - 4 - (sizeof(trampoline_prologue) - 1); // todo: - 4 is a bad idea?
+            value.low = trampoline_size - wildcard.instruction_length - (sizeof(trampoline_prologue) - 1);
             trampoline.Add(i);
             StoreToAddress64(trampoline, NumberType_Int32, value);
             trampoline.Sub(i);
